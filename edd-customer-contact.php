@@ -130,7 +130,7 @@ function edd_customer_contact( $args ) {
 	$customer = new EDD_Customer( $customer_id );
 
 	// provide a hook for doing stuff before emailing the customer
-	do_action( 'edd_pre_contact_customer', $customer_id, $confirm, $remove_data );
+	do_action( 'edd_pre_contact_customer', $customer_id );
 
 	// set a default of true on our required fields
 	$required_fields = true;
