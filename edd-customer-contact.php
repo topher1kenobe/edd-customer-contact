@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: EDD Customer Contact
+Plugin Name: Easy Digital Downloads - Customer Contact
 Version: 0.1
 Description: Creates a tab on the Customer page for sending an email to that customer.
 Author: Topher
