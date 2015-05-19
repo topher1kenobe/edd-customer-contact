@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: EDD Customer Contact
+Plugin Name: Easy Digital Downloads - Customer Contact
 Version: 0.1
 Description: Creates a tab on the Customer page for sending an email to that customer.
 Author: Topher
@@ -94,16 +94,11 @@ function edd_customer_contact( $args ) {
 	}
 
 	$customer_id   = (int)$args['customer_id'];
-	$confirm	   = ! empty( $args['edd-customer-contact-confirm'] ) ? true : false;
 	$remove_data   = ! empty( $args['edd-customer-contact-records'] ) ? true : false;
 	$nonce		   = $args['_wpnonce'];
 
 	if ( ! wp_verify_nonce( $nonce, 'contact-customer' ) ) {
 		wp_die( __( 'Cheatin\' eh?!', 'edd' ) );
-	}
-
-	if ( ! $confirm ) {
-		edd_set_error( 'customer-contact-no-confirm', __( 'Please confirm you want to contact this customer', 'edd' ) );
 	}
 
 	if ( edd_get_errors() ) {
@@ -119,35 +114,7 @@ function edd_customer_contact( $args ) {
 
 	if ( $customer->id > 0 ) {
 
-		$payments_array = explode( ',', $customer->payment_ids );
-		$success		= EDD()->customers->contact( $customer->id );
 
-		if ( $success ) {
-
-			if ( $remove_data ) {
-
-				// Remove all payments, logs, etc
-				foreach ( $payments_array as $payment_id ) {
-					edd_contact_purchase( $payment_id, false, true );
-				}
-
-			} else {
-
-				// Just set the payments to customer_id of 0
-				foreach ( $payments_array as $payment_id ) {
-					edd_update_payment_meta( $payment_id, '_edd_payment_customer_id', 0 );
-				}
-
-			}
-
-			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&edd-message=customer-contactd' );
-
-		} else {
-
-			edd_set_error( 'edd-customer-contact-failed', __( 'Error deleting customer', 'edd' ) );
-			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&view=contact&id=' . $customer_id );
-
-		}
 
 	} else {
 
