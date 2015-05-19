@@ -57,7 +57,7 @@ function edd_customers_contact_view( $customer ) {
 				<br><br>
 
 				<label for="customer-email">Message</label><br>
-				<textarea id="customer-email" name="customer_email" class="customer-note-input" rows="10"></textarea>
+				<textarea id="customer-email" name="customer-email-message" class="customer-note-input" rows="10"></textarea>
 
 				<span id="customer-edit-actions">
 					<input type="hidden" name="customer_id" value="<?php echo $customer->id; ?>" />
@@ -93,17 +93,11 @@ function edd_customer_contact( $args ) {
 		return;
 	}
 
-	$customer_id   = (int)$args['customer_id'];
-	$confirm	   = ! empty( $args['edd-customer-contact-confirm'] ) ? true : false;
-	$remove_data   = ! empty( $args['edd-customer-contact-records'] ) ? true : false;
-	$nonce		   = $args['_wpnonce'];
+	$customer_id = (int)$args['customer_id'];
+	$nonce       = $args['_wpnonce'];
 
 	if ( ! wp_verify_nonce( $nonce, 'contact-customer' ) ) {
 		wp_die( __( 'Cheatin\' eh?!', 'edd' ) );
-	}
-
-	if ( ! $confirm ) {
-		edd_set_error( 'customer-contact-no-confirm', __( 'Please confirm you want to contact this customer', 'edd' ) );
 	}
 
 	if ( edd_get_errors() ) {
@@ -115,44 +109,38 @@ function edd_customer_contact( $args ) {
 
 	do_action( 'edd_pre_contact_customer', $customer_id, $confirm, $remove_data );
 
-	$success = false;
+	// $to      = email address to send to
+	// $subject = sanitized subject input
+	// $message = sanitized message input
 
-	if ( $customer->id > 0 ) {
+	// $required_fields = true - assume that all requirements ar emet
 
-		$payments_array = explode( ',', $customer->payment_ids );
-		$success		= EDD()->customers->contact( $customer->id );
+	// If we don't have an email, message, or subject is empty, set the $requried_fields to false for error handling later
 
-		if ( $success ) {
+	if ( $customer->id > 0 || false === $required_fields ) {
 
-			if ( $remove_data ) {
 
-				// Remove all payments, logs, etc
-				foreach ( $payments_array as $payment_id ) {
-					edd_contact_purchase( $payment_id, false, true );
-				}
-
-			} else {
-
-				// Just set the payments to customer_id of 0
-				foreach ( $payments_array as $payment_id ) {
-					edd_update_payment_meta( $payment_id, '_edd_payment_customer_id', 0 );
-				}
-
-			}
-
-			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&edd-message=customer-contactd' );
-
-		} else {
-
-			edd_set_error( 'edd-customer-contact-failed', __( 'Error deleting customer', 'edd' ) );
-			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&view=contact&id=' . $customer_id );
+			// If Send EDD()->emails->send( $to, $subject, $message );
+			// then $redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&edd-message=customer-contacted' );
+			// NOTE: currently the 'edd-message' display functions aren't hookable...we should fix that
+			// else edd_set_error, Error contacting customer via email, please try again later
+			// $redirect = admin_url( 'edit.php?post_type=download&page=edd-customers' );
 
 		}
 
 	} else {
 
-		edd_set_error( 'edd-customer-contact-invalid-id', __( 'Invalid Customer ID', 'edd' ) );
-		$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers' );
+		if ( false === $required_fields ) {
+
+			edd_set_error( 'edd-customer-contact-no-content', __( 'Subject and Message are required.', 'edd' ) );
+			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&view=contact&id=' . $customer->id );
+
+		} else {
+
+			edd_set_error( 'edd-customer-contact-invalid-id', __( 'Invalid Customer ID', 'edd' ) );
+			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers' );
+
+		}
 
 	}
 
