@@ -25,6 +25,13 @@ function edd_register_contact_customer_tab( $tabs ) {
 }
 add_filter( 'edd_customer_tabs', 'edd_register_contact_customer_tab', 2, 1 );
 
+/**
+ * Register new view for the email form
+ *
+ * @since  2.3.1
+ * @param  array $views An array of existing views
+ * @return array	    The altered list of views, with the contact view added
+ */
 function edd_register_contact_view( $views ) {
 	$views['contact'] = 'edd_customers_contact_view';
 
@@ -32,6 +39,14 @@ function edd_register_contact_view( $views ) {
 }
 add_filter( 'edd_customer_views', 'edd_register_contact_view', 10, 1 );
 
+
+/**
+ * Render new view for emailing the customer
+ *
+ * @since  2.3.1
+ * @param  object $customer An object holding all of the current customer information
+ * @return string           The contact form
+ */
 function edd_customers_contact_view( $customer ) {
 	$customer_edit_role = apply_filters( 'edd_edit_customers_role', 'edit_shop_payments' );
 
@@ -79,56 +94,76 @@ function edd_customers_contact_view( $customer ) {
  *
  * @since  2.3
  * @param  array $args The $_POST array being passeed
- * @return int		   Wether it was a successful deletion
+ * @return int		   Whether it was a successful email
  */
 function edd_customer_contact( $args ) {
 
+	// set the user role that we have to have in order to edit a customer account
 	$customer_edit_role = apply_filters( 'edd_edit_customers_role', 'edit_shop_payments' );
 
+	// make sure we're allowed to be here at all
 	if ( ! is_admin() || ! current_user_can( $customer_edit_role ) ) {
 		wp_die( __( 'You do not have permission to contact this customer.', 'edd' ) );
 	}
 
+	// make sure we have some input at all
 	if ( empty( $args ) ) {
 		return;
 	}
 
+	// reassign some vars to nicer handles
 	$customer_id = (int)$args['customer_id'];
-	$nonce       = $args['_wpnonce'];
+	$nonce		 = $args['_wpnonce'];
 
+	// verify our nonce so we know we came from the proper place
 	if ( ! wp_verify_nonce( $nonce, 'contact-customer' ) ) {
 		wp_die( __( 'Cheatin\' eh?!', 'edd' ) );
 	}
 
+	// check for errors, and if we have some, bounce use to the main customer profile page
 	if ( edd_get_errors() ) {
 		wp_redirect( admin_url( 'edit.php?post_type=download&page=edd-customers&view=overview&id=' . $customer_id ) );
 		exit;
 	}
 
+	// go get all the data for the current customer
 	$customer = new EDD_Customer( $customer_id );
 
+	// provide a hook for doing stuff before emailing the customer
 	do_action( 'edd_pre_contact_customer', $customer_id, $confirm, $remove_data );
 
-	// $to      = email address to send to
-	// $subject = sanitized subject input
-	// $message = sanitized message input
+	// set a default of true on our required fields
+	$required_fields = true;
 
-	// $required_fields = true - assume that all requirements ar emet
-
-	// If we don't have an email, message, or subject is empty, set the $requried_fields to false for error handling later
-
-	if ( $customer->id > 0 || false === $required_fields ) {
-
-
-			// If Send EDD()->emails->send( $to, $subject, $message );
-			// then $redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&edd-message=customer-contacted' );
-			// NOTE: currently the 'edd-message' display functions aren't hookable...we should fix that
-			// else edd_set_error, Error contacting customer via email, please try again later
-			// $redirect = admin_url( 'edit.php?post_type=download&page=edd-customers' );
-
-		}
-
+	// make sure email is valid, else make required fields false
+	if ( is_email( $customer->email ) ) {
+		$to = $customer->email;
 	} else {
+		$required_fields = false;
+	}
+
+	// make sure subject isn't empty, else make required fields false
+	if ( trim( $args['customer-email-subject'] ) != '' ) {
+		$subject = $args['customer-email-subject'];
+	} else {
+		$required_fields = false;
+	}
+
+	// make sure message isn't empty, else make required fields false
+	if ( trim( $args['customer-email-message'] ) != '' ) {
+		$message = $args['customer-email-message'];
+	} else {
+		$required_fields = false;
+	}
+
+
+	// Make sure we have a customer ID and required fields is true, then send an email and redirect with a success message
+	if ( $customer->id > 0 && true === $required_fields ) {
+			EDD()->emails->send( sanitize_email( $to ), stripslashes( strip_tags( $subject ) ), stripslashes( strip_tags( $message ) ) );
+			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers&edd-message=customer-contacted&view=contact&id=' . $customer->id );
+	} else {
+
+		// set up some error messages
 
 		if ( false === $required_fields ) {
 
@@ -144,8 +179,86 @@ function edd_customer_contact( $args ) {
 
 	}
 
+	// send us to where we should go when we're done
 	wp_redirect( $redirect );
 	exit;
 
 }
 add_action( 'edd_contact-customer', 'edd_customer_contact', 10, 1 );
+
+
+
+/**
+ * EDD_Contact_Notices Class
+ *
+ * Heavily borrowed from EDD_Notices in /includes/admin/class-edd-notices.php
+ *
+ * @since 2.3
+ */
+class EDD_Contact_Notices {
+
+	/**
+	 * Get things started
+	 *
+	 * @since 2.3
+	 */
+	public function __construct() {
+		add_action( 'admin_notices', array( $this, 'show_notices' ) );
+		add_action( 'edd_dismiss_notices', array( $this, 'dismiss_notices' ) );
+	}
+
+	/**
+	 * Show relevant notices
+	 *
+	 * @since 2.3
+	 */
+	public function show_notices() {
+		$notices = array(
+			'updated'	=> array(),
+			'error'		=> array()
+		);
+
+		if ( isset( $_GET['edd-message'] ) ) {
+			// Shop reports errors
+			if( current_user_can( 'view_shop_reports' ) ) {
+				switch( $_GET['edd-message'] ) {
+					case 'customer-contacted' :
+						$notices['updated']['edd-customer-contacted'] = __( 'The customer has been emailed.', 'edd' );
+						break;
+				}
+			}
+
+			// Shop settings errors
+
+		}
+
+		if ( count( $notices['updated'] ) > 0 ) {
+			foreach( $notices['updated'] as $notice => $message ) {
+				add_settings_error( 'edd-notices', $notice, $message, 'updated' );
+			}
+		}
+
+		if ( count( $notices['error'] ) > 0 ) {
+			foreach( $notices['error'] as $notice => $message ) {
+				add_settings_error( 'edd-notices', $notice, $message, 'error' );
+			}
+		}
+
+		settings_errors( 'edd-notices' );
+	}
+
+	/**
+	 * Dismiss admin notices when Dismiss links are clicked
+	 *
+	 * @since 2.3
+	 * @return void
+	 */
+	function dismiss_notices() {
+		if( isset( $_GET['edd_notice'] ) ) {
+			update_user_meta( get_current_user_id(), '_edd_' . $_GET['edd_notice'] . '_dismissed', 1 );
+			wp_redirect( remove_query_arg( array( 'edd_action', 'edd_notice' ) ) );
+			exit;
+		}
+	}
+}
+new EDD_Contact_Notices;
