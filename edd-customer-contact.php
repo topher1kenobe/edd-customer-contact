@@ -56,7 +56,7 @@ function edd_customers_contact_view( $customer ) {
 
 	<div class="info-wrapper customer-section">
 
-		<form id="contact-customer" method="post" action="<?php echo admin_url( 'edit.php?post_type=download&page=edd-customers&view=contact&id=' . $customer->id ); ?>">
+		<form id="contact-customer" method="post" action="<?php echo esc_url( admin_url( 'edit.php?post_type=download&page=edd-customers&view=contact&id=' . $customer->id ) ); ?>">
 
 			<div class="customer-notes-header">
 				<?php echo get_avatar( $customer->email, 30 ); ?> <span><?php echo esc_attr( $customer->name ); ?></span>
@@ -75,7 +75,7 @@ function edd_customers_contact_view( $customer ) {
 				<textarea id="customer-email" name="customer-email-message" class="customer-note-input" rows="10"></textarea>
 
 				<span id="customer-edit-actions">
-					<input type="hidden" name="customer_id" value="<?php echo $customer->id; ?>" />
+					<input type="hidden" name="customer_id" value="<?php echo absint( $customer->id ); ?>" />
 					<?php wp_nonce_field( 'contact-customer', '_wpnonce', false, true ); ?>
 					<input type="hidden" name="edd_action" value="contact-customer" />
 					<input type="submit" id="edd-contact-customer" class="button-primary" value="<?php _e( 'Email', 'edd' ); ?> <?php echo esc_attr( $customer->name ); ?>" />
@@ -176,7 +176,6 @@ function edd_customer_contact( $args ) {
 			$redirect = admin_url( 'edit.php?post_type=download&page=edd-customers' );
 
 		}
-
 	}
 
 	// send us to where we should go when we're done
@@ -220,8 +219,8 @@ class EDD_Contact_Notices {
 
 		if ( isset( $_GET['edd-message'] ) ) {
 			// Shop reports errors
-			if( current_user_can( 'view_shop_reports' ) ) {
-				switch( $_GET['edd-message'] ) {
+			if ( current_user_can( 'view_shop_reports' ) ) {
+				switch ( $_GET['edd-message'] ) {
 					case 'customer-contacted' :
 						$notices['updated']['edd-customer-contacted'] = __( 'The customer has been emailed.', 'edd' );
 						break;
@@ -233,13 +232,13 @@ class EDD_Contact_Notices {
 		}
 
 		if ( count( $notices['updated'] ) > 0 ) {
-			foreach( $notices['updated'] as $notice => $message ) {
+			foreach ( $notices['updated'] as $notice => $message ) {
 				add_settings_error( 'edd-notices', $notice, $message, 'updated' );
 			}
 		}
 
 		if ( count( $notices['error'] ) > 0 ) {
-			foreach( $notices['error'] as $notice => $message ) {
+			foreach ( $notices['error'] as $notice => $message ) {
 				add_settings_error( 'edd-notices', $notice, $message, 'error' );
 			}
 		}
@@ -254,11 +253,11 @@ class EDD_Contact_Notices {
 	 * @return void
 	 */
 	function dismiss_notices() {
-		if( isset( $_GET['edd_notice'] ) ) {
+		if ( isset( $_GET['edd_notice'] ) ) {
 			update_user_meta( get_current_user_id(), '_edd_' . $_GET['edd_notice'] . '_dismissed', 1 );
 			wp_redirect( remove_query_arg( array( 'edd_action', 'edd_notice' ) ) );
 			exit;
 		}
 	}
 }
-new EDD_Contact_Notices;
+$edd_contact_notices = new EDD_Contact_Notices;
