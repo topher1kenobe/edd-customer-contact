@@ -62,16 +62,17 @@ function edd_customers_contact_view( $customer ) {
 				<?php echo get_avatar( $customer->email, 30 ); ?> <span><?php echo esc_attr( $customer->name ); ?></span>
 			</div>
 
+			<h3><?php _e( 'Email Customer', 'edd-customer-contact' ); ?></h3>
 
 			<div class="customer-info contact-customer">
 
 				<br>
-				<label for="customer-email-subject">Subject</label><br>
+				<label for="customer-email-subject"><?php _e( 'Subject', 'edd-customer-contact' ); ?></label><br>
 				<input type="text" name="customer-email-subject" id="customer-email-subject" class="text-large">
 
 				<br><br>
 
-				<label for="customer-email">Message</label><br>
+				<label for="customer-email"><?php _e( 'Message', 'edd-customer-contact' ); ?></label><br>
 				<textarea id="customer-email" name="customer-email-message" class="customer-note-input" rows="10"></textarea>
 
 				<span id="customer-edit-actions">
