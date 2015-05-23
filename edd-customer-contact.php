@@ -66,7 +66,6 @@ function edd_customers_contact_view( $customer ) {
 
 			<div class="customer-info contact-customer">
 
-				<br>
 				<label for="customer-email-subject"><?php _e( 'Subject', 'edd-customer-contact' ); ?></label><br>
 				<input type="text" name="customer-email-subject" id="customer-email-subject" class="text-large">
 
