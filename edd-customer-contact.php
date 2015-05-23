@@ -156,7 +156,6 @@ function edd_customer_contact( $args ) {
 		$required_fields = false;
 	}
 
-
 	// Make sure we have a customer ID and required fields is true, then send an email and redirect with a success message
 	if ( $customer->id > 0 && true === $required_fields ) {
 			EDD()->emails->send( sanitize_email( $to ), stripslashes( strip_tags( $subject ) ), stripslashes( strip_tags( $message ) ) );
@@ -253,8 +252,8 @@ class EDD_Contact_Notices {
 	 * @return void
 	 */
 	function dismiss_notices() {
-		if ( isset( $_GET['edd_notice'] ) ) {
-			update_user_meta( get_current_user_id(), '_edd_' . $_GET['edd_notice'] . '_dismissed', 1 );
+		if ( isset( $_GET['edd_notice'] ) && 'customer-contacted' == $_GET['edd_notice'] ) {
+			update_user_attribute( get_current_user_id(), '_edd_customer-contacted_dismissed', 1 );
 			wp_redirect( remove_query_arg( array( 'edd_action', 'edd_notice' ) ) );
 			exit;
 		}
