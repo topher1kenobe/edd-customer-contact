@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Easy Digital Downloads - Customer Contact
-Version: 0.1
+Version: 1.0
 Description: Creates a tab on the Customer page for sending an email to that customer.
 Author: Topher
 Author URI: http://topher1kenobe.com
