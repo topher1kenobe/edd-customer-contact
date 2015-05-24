@@ -253,7 +253,7 @@ class EDD_Contact_Notices {
 	 */
 	function dismiss_notices() {
 		if ( isset( $_GET['edd_notice'] ) && 'customer-contacted' == $_GET['edd_notice'] ) {
-			update_user_attribute( get_current_user_id(), '_edd_customer-contacted_dismissed', 1 );
+			update_user_meta( get_current_user_id(), '_edd_customer-contacted_dismissed', 1 );
 			wp_redirect( remove_query_arg( array( 'edd_action', 'edd_notice' ) ) );
 			exit;
 		}
